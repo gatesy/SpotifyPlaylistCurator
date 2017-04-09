@@ -1,0 +1,30 @@
+---------------------------------------------
+DESIGN IDEAS FOR THE SPOTIFY PLAYLIST BUILDER
+---------------------------------------------
+
+A search URL that allows you to find tracks that match a search term.
+The user can then select one or more tracks and then 'add' them to the playlist.
+Adding a track causes us to store the addition somewhere.
+
+The playlist owner can then properly log in.
+They can view the (unique) additions to the playlist.
+    They can remove the ones they don't care about;
+    They can add the ones they do.
+
+Shared persistent data will be the track IDs chosen by the users adding them.
+Each addition is stored as a record.
+These are then normalised into a list of tracks.
+It would be nice if the user can see if a track is already added (this might be difficult without full auth of the playlist owner?)
+
+[search for and request tracks (requires app auth)]
+/search <- performs a search.
+/request <- request that the tracks are added to the playlist
+
+[modify the actual playlist (requires user auth)]
+/playlist/view <- view the requests tracks
+/playlist/add <- add the provided tracks to the playlist.
+/playlist/reject <- reject the requests tracks
+
+[page entry points]
+/ <- gives the page for requesting tracks
+/playlist <- gives the page for approving additions to the playlist.
