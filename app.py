@@ -5,6 +5,7 @@ import json
 from datetime import timedelta
 from datetime import datetime
 from configparser import ConfigParser
+import oauth
 
 def read_config():
     config = ConfigParser()
@@ -14,9 +15,13 @@ def read_config():
 
     return (client_id, client_secret)
 
+def create_client_credentials():
+    client_id, client_secret = read_config()
+    return oauth.ClientCredentials(client_id, client_secret)
+
 class CoreHandler(BaseHTTPRequestHandler):
-    _bearer_token = None
-    _bearer_token_expires = datetime.min
+
+    client_credentials = create_client_credentials()
 
     def do_GET(self):
         self.send_response(200)
@@ -30,35 +35,11 @@ class CoreHandler(BaseHTTPRequestHandler):
         self.wfile.write(bytes(str(search1), 'utf-8'))
         self.wfile.write(b'\n')
 
-    def bearer_token(self, client_id, client_secret):
-        if self._bearer_token is None:
-            # Get the auth value and encode it in base 64.
-            client_id_secret = base64.b64encode(bytes('{}:{}'.format(client_id, client_secret), 'utf-8')).decode('utf-8')
-
-            auth_request = requests.post(
-                'https://accounts.spotify.com/api/token',
-                headers={
-                    'Authorization': 'Basic {}'.format(client_id_secret),
-                    'Content-Type': 'application/x-www-form-urlencoded'},
-                    data='grant_type=client_credentials')
-            auth = json.loads(auth_request.content)
-
-            self._bearer_token = auth['access_token']
-            self._bearer_token_expires = datetime.utcnow() + timedelta(seconds=auth['expires_in'])
-            print('Successfully acquired application bearer token. Expires at {}'
-                .format(self._bearer_token_expires))
-            
-        return self._bearer_token
-
     def search(self, term):
-        client_id, client_secret = read_config()
-
         search_request = requests.get(
             'https://api.spotify.com/v1/search',
             params={'q': term, 'type': 'track', 'limit': 5},
-            headers={
-                'Authorization': 'Bearer {}'.format(self.bearer_token(client_id, client_secret))
-            })
+            headers={'Authorization': 'Bearer {}'.format(self.client_credentials.get_token())})
         search_results = json.loads(search_request.content)
 
         return search_results
