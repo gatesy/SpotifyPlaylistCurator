@@ -4,6 +4,7 @@ import requests
 import json
 from datetime import datetime, timedelta
 from base64 import b64encode
+from configparser import ConfigParser
 
 class ClientCredentials:
     """Instances of this class maintain the client credentials access token"""
@@ -37,4 +38,15 @@ class ClientCredentials:
     def has_token_expired(self):
         """Check to see if the existing token has expired"""
         return self.expires - datetime.utcnow() <= timedelta()
-    
+
+def read_config():
+    config = ConfigParser()
+    config.read('config.ini')
+    client_id = config['team16']['ClientId']
+    client_secret = config['team16']['ClientSecret']
+
+    return (client_id, client_secret)
+
+def create_client_credentials():
+    client_id, client_secret = read_config()
+    return ClientCredentials(client_id, client_secret)

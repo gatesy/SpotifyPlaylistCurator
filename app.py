@@ -1,52 +1,61 @@
-from http.server import HTTPServer, BaseHTTPRequestHandler
+import http.server
 import requests
-import base64
 import json
-from datetime import timedelta
-from datetime import datetime
-from configparser import ConfigParser
 import oauth
+import urllib.parse
+import re
+import search
 
-def read_config():
-    config = ConfigParser()
-    config.read('config.ini')
-    client_id = config['team16']['ClientId']
-    client_secret = config['team16']['ClientSecret']
+class RoutingHandler(http.server.BaseHTTPRequestHandler):
+    def __init__(self, request, client_address, server, handlers):
+        self.handlers = handlers
+        super().__init__(request, client_address, server)
 
-    return (client_id, client_secret)
+    def __getattribute__(self, name):
+        if(name.startswith('do_')):
+            handler_class = self.get_handler_class()
+            if(handler_class is not None):
+                # disable the 'handle' method
+                handler_class.handle = lambda *args: None
+                # instantiate the handler
+                handler = handler_class(self.request, self.client_address, self.server)
+                # copy all of our properties into it.
+                handler.__dict__.update(self.__dict__)
+                # return the handler's do_* method
+                return handler.__getattribute__(name)
+            else:
+                return self.not_found
+        return object.__getattribute__(self, name)
 
-def create_client_credentials():
-    client_id, client_secret = read_config()
-    return oauth.ClientCredentials(client_id, client_secret)
+    def get_handler_class(self):
+        parsed_url = urllib.parse.urlparse(self.path)
+        for path_and_handler in self.handlers:
+            if re.search(path_and_handler[0], parsed_url.path):
+                return path_and_handler[1]
+        return None
 
-class CoreHandler(BaseHTTPRequestHandler):
+    def not_found(self):
+        self.send_error(404)
 
-    client_credentials = create_client_credentials()
-
+class DefaultHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.send_header('Content-Type', 'text/plain')
         self.end_headers()
-        self.wfile.write(b'Hello world!\n')
+        self.wfile.write(b'Spotify Playlist Curator API\n')
 
-        #bearer_token = self.bearer_token(client_id, client_secret)
-        #self.wfile.write(bytes(bearer_token + '\n', 'utf-8'))
-        search1 = self.search('Danger Zone')
-        self.wfile.write(bytes(str(search1), 'utf-8'))
-        self.wfile.write(b'\n')
-
-    def search(self, term):
-        search_request = requests.get(
-            'https://api.spotify.com/v1/search',
-            params={'q': term, 'type': 'track', 'limit': 5},
-            headers={'Authorization': 'Bearer {}'.format(self.client_credentials.get_token())})
-        search_results = json.loads(search_request.content)
-
-        return search_results
+def handler_factory(handlers):
+    return lambda request, client_address, server: RoutingHandler(request, client_address, server, handlers)
 
 def run_server():
+
+    handlers = [
+        ('^/search$', search.SearchHandler),
+        ('^/$', DefaultHandler)
+    ]
+
     server_address = ('localhost', 8888)
-    httpd = HTTPServer(server_address, CoreHandler)
+    httpd = http.server.HTTPServer(server_address, handler_factory(handlers))
     httpd.serve_forever()
 
 run_server()
