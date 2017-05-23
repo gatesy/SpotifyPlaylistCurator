@@ -3,7 +3,12 @@ import React, { Component } from 'react';
 class Track extends Component {
     render() {
         return (
-            <li>{this.props.track.name}</li>
+            <div>
+              <label>
+                {this.props.track.name}
+                <input type="checkbox"/>
+              </label>
+            </div>
         );
     }
 }
@@ -14,9 +19,9 @@ class TrackList extends Component {
           <Track key={track.id} track={track}/>
         ));
         return (
-            <ul>
+            <div>
                 {trackListItems}
-            </ul>
+            </div>
         );
     }
 }
