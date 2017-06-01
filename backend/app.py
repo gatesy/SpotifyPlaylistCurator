@@ -5,6 +5,7 @@ import oauth
 import urllib.parse
 import re
 import search
+import request
 
 class RoutingHandler(http.server.BaseHTTPRequestHandler):
     def __init__(self, request, client_address, server, handlers):
@@ -52,6 +53,7 @@ def run_server():
 
     handlers = [
         ('^/search$', search.SearchHandler),
+        ('^/request$', request.TrackRequestHandler),
         ('^/$', DefaultHandler)
     ]
 

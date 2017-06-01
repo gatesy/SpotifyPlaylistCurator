@@ -5,8 +5,8 @@ class Track extends Component {
         return (
             <div>
               <label>
-                {this.props.track.name}
                 <input type="checkbox"/>
+                {this.props.track.name}
               </label>
             </div>
         );
@@ -75,6 +75,7 @@ class TrackSearcher extends Component {
   constructor(props) {
     super(props);
     this.state = {'tracks' : []};
+    this.handleRequestTracks = this.handleRequestTracks.bind(this);
     this.handleTracks = this.handleTracks.bind(this);
   }
 
@@ -82,9 +83,25 @@ class TrackSearcher extends Component {
     return (
       <div>
         <SearchForTracks onTracks={this.handleTracks} />
-        <TrackList tracks={this.state.tracks} />
+        <form onSubmit={this.handleRequestTracks}>
+          <TrackList tracks={this.state.tracks} />
+          <input type="submit" value="Request"/>
+        </form>
       </div>
     );
+  }
+
+  handleRequestTracks(event) {
+    let tracks_json = JSON.stringify(this.state.tracks);
+    fetch("http://localhost:8888/request", { method : "POST", body : tracks_json})
+      .then(function(response) {
+        console.log("Success", response);
+      }, function(response) {
+        console.log("FAIL", response);
+      }).catch(function(err) {
+        console.log("error " + err);
+      });
+    event.preventDefault();
   }
 
   handleTracks(tracks) {
